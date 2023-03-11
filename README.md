@@ -1,6 +1,7 @@
 ## Async memcached client for Rust.
 
 [![Software License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](LICENSE)
+[![Crates.io](https://img.shields.io/crates/v/memento.svg)](https://crates.io/crates/memento)
 
 ## Contents
 - [Usage](#usage)
