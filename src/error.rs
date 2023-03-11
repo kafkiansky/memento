@@ -9,6 +9,7 @@ pub enum MementoError {
     InvalidItem(String),
     IoError(String),
     InvalidIntegerValue(String),
+    InvalidStat(String),
 }
 
 impl Display for MementoError {
@@ -19,6 +20,7 @@ impl Display for MementoError {
             Self::InvalidItem(item) => write!(f, "cannot parse item {item}"),
             Self::IoError(err) => write!(f, "{}", err),
             Self::InvalidIntegerValue(msg) => write!(f, "{}", msg),
+            Self::InvalidStat(stat) => write!(f, "invalid stat {stat}"),
         }
     }
 }

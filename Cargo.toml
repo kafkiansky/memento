@@ -15,5 +15,4 @@ description = "async memcached client for rust"
 byteorder = "1.4.3"
 bytes = "1.2.1"
 tokio-stream = "0.1"
-#tokio = { version = "1", features = ["bytes", "net", "io-util"]}
-tokio = { version = "1", features = ["full"]}
+tokio = { version = "1", features = ["bytes", "net", "io-util"]}
