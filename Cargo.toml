@@ -2,12 +2,18 @@
 name = "memento"
 version = "0.1.0"
 edition = "2021"
+authors = ["kafkiansky <vadimzanfir@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/kafkiansky/memento"
+keywords = ["memcached", "tokio", "async", "cache"]
+description = "async memcached client for rust"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 byteorder = "1.4.3"
 bytes = "1.2.1"
-chrono = "0.4.23"
-tokio = { version = "1", features = ["full"] }
 tokio-stream = "0.1"
+#tokio = { version = "1", features = ["bytes", "net", "io-util"]}
+tokio = { version = "1", features = ["full"]}

@@ -1,5 +1,6 @@
 use std::fmt::{Display, Formatter, Result};
 use std::io::Error;
+use std::num::ParseIntError;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum MementoError {
@@ -7,6 +8,7 @@ pub enum MementoError {
     ConnectionReset,
     InvalidItem(String),
     IoError(String),
+    InvalidIntegerValue(String),
 }
 
 impl Display for MementoError {
@@ -16,6 +18,7 @@ impl Display for MementoError {
             Self::ConnectionReset => write!(f, "connection reset by peer"),
             Self::InvalidItem(item) => write!(f, "cannot parse item {item}"),
             Self::IoError(err) => write!(f, "{}", err),
+            Self::InvalidIntegerValue(msg) => write!(f, "{}", msg),
         }
     }
 }
@@ -25,5 +28,11 @@ impl std::error::Error for MementoError {}
 impl From<Error> for MementoError {
     fn from(value: Error) -> Self {
         Self::IoError(value.to_string())
+    }
+}
+
+impl From<ParseIntError> for MementoError {
+    fn from(value: ParseIntError) -> Self {
+        Self::InvalidIntegerValue(value.to_string())
     }
 }

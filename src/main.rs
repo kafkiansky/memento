@@ -2,22 +2,11 @@
 async fn main() -> memento::Result<()> {
     let mut memento = memento::new("localhost:11211").await?;
 
-    let get_resp = memento
-        .execute(memento::gets(vec!["kek", "x", "xxxx"]))
+    memento
+        .execute(memento::set("i".parse()?, memento::Item::timeless(0)))
         .await?;
 
-    match get_resp {
-        memento::CommandResp::Value(values) => {
-            for (key, item) in values {
-                println!(
-                    "{key}: {item}",
-                    key = key.to_string(),
-                    item = item.to_string()
-                )
-            }
-        }
-        _ => println!("other"),
-    }
+    memento.execute(memento::incr("i".parse()?, 1)).await?;
 
     Ok(())
 }

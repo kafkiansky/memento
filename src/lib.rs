@@ -58,3 +58,19 @@ pub fn gets<T: ToString>(keys: Vec<T>) -> Command {
 pub fn stats() -> Command {
     Command::Stats
 }
+
+///
+/// ```rust
+/// let cmd = memento::incr("x".parse()?, 1);
+/// ```
+pub fn incr(key: Key, value: u64) -> Command {
+    Command::Incr(Incr::new(key, value))
+}
+
+///
+/// ```rust
+/// let cmd = memento::decr("x".parse()?, 1);
+/// ```
+pub fn decr(key: Key, value: usize) -> Command {
+    Command::Decr(Decr::new(key, value))
+}

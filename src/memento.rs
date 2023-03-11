@@ -52,7 +52,7 @@ impl Memento {
     /// async fn main() -> memento::Result<()> {
     ///     let mut memento = memento::new("localhost:11211").await?;
     ///
-    ///     let response = memento.execute(memento::set("x", memento::Item::timeless("y"))).await?;
+    ///     let response = memento.execute(memento::set("x".parse()?, memento::Item::timeless("y"))).await?;
     ///
     ///     Ok(())
     /// }
@@ -61,12 +61,12 @@ impl Memento {
         self.stream.write_all(cmd.to_string().as_bytes()).await?;
         self.stream.flush().await?;
 
-        self.read_response().await
+        self.read_response(cmd).await
     }
 
-    async fn read_response(&mut self) -> crate::Result<CommandResp> {
+    async fn read_response(&mut self, cmd: Command) -> crate::Result<CommandResp> {
         loop {
-            if let Some(resp) = self.parse_response().await? {
+            if let Some(resp) = self.parse_response(cmd.clone()).await? {
                 return Ok(resp);
             }
 
@@ -88,7 +88,7 @@ impl Memento {
         }
     }
 
-    async fn parse_response(&mut self) -> crate::Result<Option<CommandResp>> {
+    async fn parse_response(&mut self, cmd: Command) -> crate::Result<Option<CommandResp>> {
         let mut frames: Vec<String> = Vec::new();
 
         let mut lines = self.buffer.lines();
@@ -102,6 +102,6 @@ impl Memento {
 
         self.buffer.advance(frame_len);
 
-        CommandResp::from_vec(frames)
+        CommandResp::from_vec(frames, cmd)
     }
 }

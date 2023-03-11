@@ -128,10 +128,48 @@ impl Set {
 }
 
 #[derive(Debug, Clone)]
+pub struct Incr {
+    key: Key,
+    value: u64,
+}
+
+impl Incr {
+    ///
+    /// ```rust
+    /// use memento::Incr;
+    ///
+    /// let key = Incr::new("x".parse::<memento::Key>().unwrap(), 1);
+    /// ```
+    pub fn new(key: Key, value: u64) -> Self {
+        Self { key, value }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Decr {
+    key: Key,
+    value: usize,
+}
+
+impl Decr {
+    ///
+    /// ```rust
+    /// use memento::Decr;
+    ///
+    /// let key = Decr::new("x".parse::<memento::Key>().unwrap(), 1);
+    /// ```
+    pub fn new(key: Key, value: usize) -> Self {
+        Self { key, value }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub enum Command {
     Set(Set),
     Stats,
     Get(Vec<String>),
+    Incr(Incr),
+    Decr(Decr),
 }
 
 impl ToString for Command {
@@ -149,6 +187,20 @@ impl ToString for Command {
             }
             Self::Get(cmd) => format!("get {key}\r\n", key = cmd.join(" ")),
             Self::Stats => "stats\r\n".to_string(),
+            Self::Incr(cmd) => {
+                format!(
+                    "incr {key} {value}\r\n",
+                    key = cmd.key.to_string(),
+                    value = cmd.value
+                )
+            }
+            Self::Decr(cmd) => {
+                format!(
+                    "decr {key} {value}\r\n",
+                    key = cmd.key.to_string(),
+                    value = cmd.value
+                )
+            }
         }
     }
 }
@@ -163,12 +215,14 @@ pub enum CommandResp {
     NoResponse,
     Value(Vec<(Key, Item)>),
     Stat,
+    Incremented(u64),
+    Decremented(u64),
 }
 
 impl CommandResp {
-    pub(crate) fn from_vec<T>(mut frames: Vec<T>) -> crate::Result<Option<Self>>
+    pub(crate) fn from_vec<T>(mut frames: Vec<T>, cmd: Command) -> crate::Result<Option<Self>>
     where
-        T: ToString,
+        T: ToString + Debug,
     {
         let response = match frames
             .first()
@@ -180,7 +234,7 @@ impl CommandResp {
         {
             "STORED" => Some(CommandResp::Stored),
             "VALUE" => {
-                frames.pop(); // remove END.
+                frames.pop(); // remove END keyword.
 
                 let mut values = Vec::default();
 
@@ -195,7 +249,13 @@ impl CommandResp {
             }
             "STAT" => Some(CommandResp::Stat),
             "ERROR" => Some(CommandResp::Error),
-            _ => None,
+            "NOT_FOUND" => Some(CommandResp::NotFound),
+            "" => None,
+            value => match cmd {
+                Command::Incr(..) => Some(CommandResp::Incremented(value.parse::<u64>()?)),
+                Command::Decr(..) => Some(CommandResp::Decremented(value.parse::<u64>()?)),
+                _ => None,
+            },
         };
 
         Ok(response)
