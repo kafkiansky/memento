@@ -1,12 +1,16 @@
+## Async memcached client for Rust.
+
+### Examples
+```rust
 #[tokio::main]
 async fn main() -> memento::Result<()> {
     let mut memento = memento::new("localhost:11211").await?;
 
-    let get_resp = memento
-        .execute(memento::gets(vec!["kek", "x", "xxxx"]))
+    let gets = memento
+        .execute(memento::gets(vec!["x", "y"]))
         .await?;
 
-    match get_resp {
+    match gets {
         memento::CommandResp::Value(values) => {
             for (key, item) in values {
                 println!(
@@ -21,3 +25,5 @@ async fn main() -> memento::Result<()> {
 
     Ok(())
 }
+
+```

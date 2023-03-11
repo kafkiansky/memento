@@ -1,31 +1,34 @@
 mod command;
+mod error;
 mod memento;
 
-pub use self::{command::*, memento::*};
+pub use self::{command::*, error::*, memento::*};
 
 use tokio::net::ToSocketAddrs;
 
+pub type Result<T> = std::result::Result<T, MementoError>;
+
 ///
 /// ```rust
-/// use std::error::Error;
+/// use memento::Result;
 ///
 /// #[tokio::main]
-/// async fn main() -> Result<(), dyn Error> {
+/// async fn main() -> Result<()> {
 ///     let client = memento::new("localhost:11211").await?;
 ///
 ///     Ok(())
 /// }
 ///```
-pub async fn new<A: ToSocketAddrs>(addr: A) -> anyhow::Result<Memento> {
+pub async fn new<A: ToSocketAddrs>(addr: A) -> Result<Memento> {
     Memento::connect(addr).await
 }
 
 ///
 /// ```rust
-/// let cmd = memento::set("x", memento::Item::timeless("y"));
+/// let cmd = memento::set("x".parse::<memento::Key>().unwrap(), memento::Item::timeless("y"));
 /// ```
-pub fn set<T: ToString>(name: T, item: Item) -> Command {
-    Command::Set(Set::new(name, item))
+pub fn set(key: Key, item: Item) -> Command {
+    Command::Set(Set::new(key, item))
 }
 
 ///

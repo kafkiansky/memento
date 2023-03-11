@@ -1,6 +1,52 @@
-use std::fmt::{Display, Formatter};
+use crate::MementoError;
+use std::fmt::Debug;
 use std::str::FromStr;
 use std::time::Duration;
+
+#[derive(Debug, Clone)]
+pub struct Key {
+    value: String,
+}
+
+impl ToString for Key {
+    fn to_string(&self) -> String {
+        self.value.to_string()
+    }
+}
+
+///
+/// ```rust
+/// async fn main() -> memento::Result<()> {
+///     let raw_key = "x".parse::<memento::Key>()?; // x
+///     let value_key = "VALUE x 0 3".parse::<memento::Key>()?; // x
+///
+///     Ok(())
+/// }
+/// ```
+impl FromStr for Key {
+    type Err = MementoError;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        if value.contains("VALUE") {
+            return Ok(Key {
+                value: value
+                    .split_whitespace()
+                    .skip(1)
+                    .next()
+                    .unwrap_or_default()
+                    .to_string(),
+            });
+        }
+
+        if value.len() > 250 {
+            return Err(MementoError::TooLongKey(value.to_string()));
+        }
+
+        return Ok(Key {
+            value: value.to_string(),
+        });
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct Item {
@@ -41,9 +87,31 @@ impl Item {
     }
 }
 
+///
+/// ```rust
+/// async fn main() -> memento::Result<()> {
+///     let item = "value".parse::<memento::Item>()?; // value
+///
+///     Ok(())
+/// }
+/// ```
+impl FromStr for Item {
+    type Err = MementoError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Item::timeless(s))
+    }
+}
+
+impl ToString for Item {
+    fn to_string(&self) -> String {
+        self.value.to_string()
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Set {
-    key: String,
+    key: Key,
     item: Item,
 }
 
@@ -52,13 +120,10 @@ impl Set {
     /// ```rust
     /// use memento::{Item, Set};
     ///
-    /// let key = Set::new("x", Item::timeless("y"));
+    /// let key = Set::new("x".parse::<memento::Key>().unwrap(), Item::timeless("y"));
     /// ```
-    pub fn new<T: ToString>(key: T, item: Item) -> Self {
-        Self {
-            key: key.to_string(),
-            item,
-        }
+    pub fn new(key: Key, item: Item) -> Self {
+        Self { key, item }
     }
 }
 
@@ -75,7 +140,7 @@ impl ToString for Command {
             Self::Set(cmd) => {
                 format!(
                     "set {key} {flags} {expires} {len}\r\n{value}\r\n",
-                    key = cmd.key,
+                    key = cmd.key.to_string(),
                     flags = 0,
                     expires = cmd.item.seconds(),
                     len = cmd.item.value.len(),
@@ -96,55 +161,43 @@ pub enum CommandResp {
     Exists,
     NotFound,
     NoResponse,
+    Value(Vec<(Key, Item)>),
+    Stat,
 }
 
 impl CommandResp {
-    pub(crate) fn from_vec(frames: Vec<String>) -> anyhow::Result<Option<Self>> {
-        println!("{:#?}", frames);
+    pub(crate) fn from_vec<T>(mut frames: Vec<T>) -> crate::Result<Option<Self>>
+    where
+        T: ToString,
+    {
+        let response = match frames
+            .first()
+            .map(ToString::to_string)
+            .unwrap_or_default()
+            .split_whitespace()
+            .next()
+            .unwrap_or_default()
+        {
+            "STORED" => Some(CommandResp::Stored),
+            "VALUE" => {
+                frames.pop(); // remove END.
 
-        if frames.is_empty() {
-            return Ok(None);
-        }
+                let mut values = Vec::default();
 
-        Ok(Some(CommandResp::NotFound))
-    }
-}
+                for chunk in frames.chunks(2) {
+                    values.push((
+                        chunk[0].to_string().as_str().parse::<Key>()?,
+                        chunk[1].to_string().as_str().parse::<Item>()?,
+                    ));
+                }
 
-#[derive(Debug)]
-pub struct InvalidCommandResp(String);
+                Some(CommandResp::Value(values))
+            }
+            "STAT" => Some(CommandResp::Stat),
+            "ERROR" => Some(CommandResp::Error),
+            _ => None,
+        };
 
-impl Display for InvalidCommandResp {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "unknown response {response} received", response = self.0)
-    }
-}
-
-impl std::error::Error for InvalidCommandResp {}
-
-impl<T> From<Vec<T>> for CommandResp
-where
-    T: ToString,
-{
-    fn from(frames: Vec<T>) -> Self {
-        if frames.is_empty() {
-            return CommandResp::NoResponse;
-        }
-
-        return CommandResp::NotFound;
-    }
-}
-
-impl FromStr for CommandResp {
-    type Err = InvalidCommandResp;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.trim() {
-            "STORED" => Ok(CommandResp::Stored),
-            "ERROR" => Ok(CommandResp::Error),
-            "NOT_STORED" => Ok(CommandResp::NotStored),
-            "EXISTS" => Ok(CommandResp::Exists),
-            "NOT_FOUND" => Ok(CommandResp::NotFound),
-            response => Err(InvalidCommandResp(response.to_string())),
-        }
+        Ok(response)
     }
 }

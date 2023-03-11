@@ -1,4 +1,4 @@
-use crate::{Command, CommandResp};
+use crate::{Command, CommandResp, MementoError};
 use bytes::{Buf, BytesMut};
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufStream};
 use tokio::net::{TcpStream, ToSocketAddrs};
@@ -10,14 +10,15 @@ pub struct Memento {
     cursor: usize,
 }
 
+unsafe impl Send for Memento {}
+
 impl Memento {
     ///
     /// ```rust
     /// use tokio::net::TcpStream;
-    /// use std::error::Error;
     ///
     /// #[tokio::main]
-    /// async fn main() -> Result<(), dyn Error> {
+    /// async fn main() -> memento::Result<()> {
     ///     let memento = memento::Memento::from_stream(TcpStream::connect("localhost:11211").await?);
     ///
     ///     Ok(())
@@ -34,24 +35,21 @@ impl Memento {
     ///
     /// ```rust
     /// use tokio::net::TcpStream;
-    /// use std::error::Error;
     ///
     /// #[tokio::main]
-    /// async fn main() -> Result<(), dyn Error> {
+    /// async fn main() -> memento::Result<()> {
     ///     let memento = memento::Memento::connect("localhost:11211").await?;
     ///
     ///     Ok(())
     /// }
     /// ```
-    pub async fn connect<A: ToSocketAddrs>(addr: A) -> anyhow::Result<Self> {
+    pub async fn connect<A: ToSocketAddrs>(addr: A) -> crate::Result<Self> {
         Ok(Self::from_stream(TcpStream::connect(addr).await?))
     }
 
     ///
     /// ```rust
-    /// use std::error::Error;
-    ///
-    /// async fn main() -> Result<(), dyn Error> {
+    /// async fn main() -> memento::Result<()> {
     ///     let mut memento = memento::new("localhost:11211").await?;
     ///
     ///     let response = memento.execute(memento::set("x", memento::Item::timeless("y"))).await?;
@@ -59,12 +57,16 @@ impl Memento {
     ///     Ok(())
     /// }
     /// ```
-    pub async fn execute(&mut self, cmd: Command) -> anyhow::Result<CommandResp> {
+    pub async fn execute(&mut self, cmd: Command) -> crate::Result<CommandResp> {
         self.stream.write_all(cmd.to_string().as_bytes()).await?;
         self.stream.flush().await?;
 
+        self.read_response().await
+    }
+
+    async fn read_response(&mut self) -> crate::Result<CommandResp> {
         loop {
-            if let Some(resp) = self.parse_resp().await? {
+            if let Some(resp) = self.parse_response().await? {
                 return Ok(resp);
             }
 
@@ -79,14 +81,14 @@ impl Memento {
                     return Ok(CommandResp::NoResponse);
                 }
 
-                return Err(anyhow::Error::msg("connection reset by peer"));
+                return Err(MementoError::ConnectionReset);
             }
 
             self.cursor += len;
         }
     }
 
-    async fn parse_resp(&mut self) -> anyhow::Result<Option<CommandResp>> {
+    async fn parse_response(&mut self) -> crate::Result<Option<CommandResp>> {
         let mut frames: Vec<String> = Vec::new();
 
         let mut lines = self.buffer.lines();
