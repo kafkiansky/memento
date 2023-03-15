@@ -215,7 +215,7 @@ async fn main() -> memento::Result<()> {
         .append("language".parse()?, Item::timeless(" c++"))
         .await?
     {
-        memento::CommandResp::NotStored => println!("value exists"),
+        memento::CommandResp::Stored => println!("OK"),
         cmd => println!("{:#?}", cmd),
     }
 
@@ -254,7 +254,7 @@ async fn main() -> memento::Result<()> {
         .prepend("language".parse()?, Item::timeless("c++ "))
         .await?
     {
-        memento::CommandResp::NotStored => println!("value exists"),
+        memento::CommandResp::Stored => println!("OK"),
         cmd => println!("{:#?}", cmd),
     }
 

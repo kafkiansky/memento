@@ -120,7 +120,7 @@ impl Set {
     /// ```rust
     /// use memento::{Item, Set};
     ///
-    /// let key = Set::new("x".parse::<memento::Key>().unwrap(), Item::timeless("y"));
+    /// let cmd = Set::new("x".parse()?, Item::timeless("y"));
     /// ```
     pub fn new(key: Key, item: Item) -> Self {
         Self { key, item }
@@ -138,7 +138,7 @@ impl Add {
     /// ```rust
     /// use memento::{Item, Add};
     ///
-    /// let key = Add::new("x".parse::<memento::Key>().unwrap(), Item::timeless("y"));
+    /// let cmd = Add::new("x".parse()?, Item::timeless("y"));
     /// ```
     pub fn new(key: Key, item: Item) -> Self {
         Self { key, item }
@@ -156,7 +156,7 @@ impl Append {
     /// ```rust
     /// use memento::{Item, Append};
     ///
-    /// let key = Append::new("x".parse::<memento::Key>().unwrap(), Item::timeless("y"));
+    /// let cmd = Append::new("x".parse()?, Item::timeless("y"));
     /// ```
     pub fn new(key: Key, item: Item) -> Self {
         Self { key, item }
@@ -174,7 +174,7 @@ impl Prepend {
     /// ```rust
     /// use memento::{Item, Prepend};
     ///
-    /// let key = Prepend::new("x".parse::<memento::Key>().unwrap(), Item::timeless("y"));
+    /// let cmd = Prepend::new("x".parse()?, Item::timeless("y"));
     /// ```
     pub fn new(key: Key, item: Item) -> Self {
         Self { key, item }
@@ -192,7 +192,7 @@ impl Replace {
     /// ```rust
     /// use memento::{Item, Replace};
     ///
-    /// let key = Replace::new("x".parse::<memento::Key>().unwrap(), Item::timeless("y"));
+    /// let cmd = Replace::new("x".parse()?, Item::timeless("y"));
     /// ```
     pub fn new(key: Key, item: Item) -> Self {
         Self { key, item }
@@ -210,7 +210,7 @@ impl Incr {
     /// ```rust
     /// use memento::Incr;
     ///
-    /// let key = Incr::new("x".parse::<memento::Key>().unwrap(), 1);
+    /// let cmd = Incr::new("x".parse()?, 1);
     /// ```
     pub fn new(key: Key, value: u64) -> Self {
         Self { key, value }
@@ -228,7 +228,7 @@ impl Decr {
     /// ```rust
     /// use memento::Decr;
     ///
-    /// let key = Decr::new("x".parse::<memento::Key>().unwrap(), 1);
+    /// let cmd = Decr::new("x".parse()?, 1);
     /// ```
     pub fn new(key: Key, value: u64) -> Self {
         Self { key, value }
